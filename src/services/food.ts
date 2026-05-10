@@ -26,12 +26,12 @@ export const getFoodPhotos = () => {
   return http.get<FoodPhotoDay[]>('/api/v1/food/photos');
 };
 
-export const getFoodPhotoComments = (photoId: number) => {
-  return http.get<FoodPhotoComment[]>(`/api/v1/food/photos/${photoId}/comments`);
+export const getFoodPhotoComments = (groupId: string) => {
+  return http.get<FoodPhotoComment[]>(`/api/v1/food/groups/${groupId}/comments`);
 };
 
-export const addFoodPhotoComment = (photoId: number, content: string) => {
-  return http.post<FoodPhotoComment>(`/api/v1/food/photos/${photoId}/comments`, {
+export const addFoodPhotoComment = (groupId: string, content: string) => {
+  return http.post<FoodPhotoComment>(`/api/v1/food/groups/${groupId}/comments`, {
     content,
   });
 };

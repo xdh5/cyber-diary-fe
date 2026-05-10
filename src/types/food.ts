@@ -12,7 +12,8 @@ export interface FoodPhoto {
 
 export interface FoodPhotoComment {
   id: number;
-  food_photo_id: number;
+  group_id: string;
+  user_id: number;
   content: string;
   created_at: string;
 }
@@ -21,6 +22,7 @@ export interface FoodPhotoGroup {
   group_id: string;
   caption?: string | null;
   photos: FoodPhoto[];
+  comments: FoodPhotoComment[];
 }
 
 export interface FoodPhotoDay {

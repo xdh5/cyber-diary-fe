@@ -1,2 +1,35 @@
-node_modules
-dist
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+dist/
+build/
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+*.dockerfile
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
+.cache/
+.parcel-cache/
+.next/
+.nuxt/

@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Plus, Search } from 'lucide-react';
 import { api } from '../../services/api';
 import { getImageUrl } from '../../services/cloudinary';
 import type { FoodPhoto, FoodPhotoDay } from '../../types/food';
-
-type FoodGalleryView = 'day' | 'all';
 
 const formatDateHeader = (dateStr: string): string => {
   const date = new Date(dateStr);
@@ -19,6 +17,12 @@ const formatDateHeader = (dateStr: string): string => {
   return `${year}年${month}月${day}日（${weekday}）`;
 };
 
+const formatTime = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+};
+
 const sortPhotosDesc = (photos: FoodPhoto[]) => {
   return [...photos].sort((a, b) => {
     const aTime = new Date(a.shot_at || a.created_at).getTime();
@@ -30,16 +34,8 @@ const sortPhotosDesc = (photos: FoodPhoto[]) => {
 const FoodPage = () => {
   const [days, setDays] = useState<FoodPhotoDay[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeView, setActiveView] = useState<FoodGalleryView>('day');
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const galleryPhotos = useMemo(() => {
-    return sortPhotosDesc(
-      days.flatMap((day) =>
-        day.groups.flatMap((group) => group.photos)
-      )
-    );
-  }, [days]);
 
   useEffect(() => {
     let active = true;
@@ -65,74 +61,39 @@ const FoodPage = () => {
   };
 
   return (
-    <main className="min-h-[100dvh] bg-white pb-20">
-      <header className="sticky top-0 z-30 bg-white">
+    <main className="min-h-[100dvh] bg-gradient-to-b from-slate-50 to-white pb-20">
+      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md">
         <div className="border-b border-slate-100 px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold text-slate-900">照片墙</h1>
-          </div>
+          <h1 className="text-xl font-bold text-slate-800">美食日记</h1>
         </div>
-
-        <div className="flex border-b border-slate-100">
-          <button
-            type="button"
-            onClick={() => setActiveView('day')}
-            className={`flex-1 py-3 text-sm font-medium transition relative ${
-              activeView === 'day'
-                ? 'text-[var(--color-primary)]'
-                : 'text-slate-400'
-            }`}
-          >
-            每天的照片
-            {activeView === 'day' && (
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-16 bg-[var(--color-primary)] rounded-full" />
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveView('all')}
-            className={`flex-1 py-3 text-sm font-medium transition relative ${
-              activeView === 'all'
-                ? 'text-[var(--color-primary)]'
-                : 'text-slate-400'
-            }`}
-          >
-            所有照片
-            {activeView === 'all' && (
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-16 bg-[var(--color-primary)] rounded-full" />
-            )}
-          </button>
-        </div>
-
-        {activeView === 'all' && (
-          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-            <div className="flex items-center gap-1">
-              <span className="text-sm text-slate-400">全部时间</span>
-              <ChevronDown size={14} className="text-slate-400" />
-            </div>
-            <button className="text-sm text-[var(--color-primary)] font-medium">选择</button>
-          </div>
-        )}
       </header>
 
-      <section className="py-4">
+      <section className="px-4 py-5">
         {loading ? (
-          <div className="py-10 text-center text-sm text-slate-400">加载中...</div>
-        ) : galleryPhotos.length === 0 ? (
-          <div className="flex min-h-[40vh] items-center justify-center text-slate-400">
-            还没有美食照片
+          <div className="py-20 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-[var(--color-primary)] border-t-transparent mb-4"></div>
+            <p className="text-sm text-slate-400">加载中...</p>
           </div>
-        ) : activeView === 'day' ? (
-          <div className="space-y-6">
-            {days.map((day) => (
-              <div key={day.date} className="px-3">
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-900">
-                      {formatDateHeader(day.date)}
-                    </span>
-                  </div>
-                </div>
+        ) : days.length === 0 ? (
+          <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-8">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[var(--color-primary)]/20 to-orange-100 flex items-center justify-center mb-4">
+              <Plus size={32} className="text-[var(--color-primary)]" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-700 mb-2">还没有美食照片</h3>
+            <p className="text-sm text-slate-400 mb-6">记录你的每一餐，留住美好时光</p>
+            <button
+              type="button"
+              onClick={handleAddPhoto}
+              className="px-6 py-2.5 bg-[var(--color-primary)] text-white rounded-full text-sm font-medium hover:bg-[var(--color-primary-hover)] transition-colors"
+            >
+              开始记录
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {days.map((day, dayIndex) => (
+              <div key={day.date}>
+                <h2 className="mb-4 text-sm font-semibold text-slate-800">{formatDateHeader(day.date)}</h2>
                 
                 <div className="space-y-4">
                   {day.groups.map((group, groupIndex) => {
@@ -143,23 +104,16 @@ const FoodPage = () => {
                     const firstPhoto = orderedPhotos[0];
                     
                     return (
-                      <article key={`${day.date}-${groupIndex}`} className="rounded-xl bg-white p-2 border border-slate-100">
-                        {firstPhoto && (
-                          <div className="text-xs text-slate-400 mb-2">
-                            {firstPhoto.shot_at?.split('T')[1]?.slice(0, 5) || 
-                             firstPhoto.created_at.split('T')[1]?.slice(0, 5) || ''}
-                          </div>
-                        )}
-                        
-                        <div className="grid grid-cols-3 gap-1">
-                          {previewPhotos.map((photo, photoIndex) => {
+                      <div key={`${day.date}-${groupIndex}`} className="mb-6">
+                        <div className="grid grid-cols-3 gap-2">
+                          {previewPhotos.map((photo) => {
                             const imageUrl = getImageUrl(photo.photo_url, 'thumb');
-                            const isLastPreview = photoIndex === previewPhotos.length - 1;
                             
                             return (
                               <div
                                 key={photo.id}
-                                className="relative aspect-square overflow-hidden rounded-lg bg-slate-100"
+                                className="relative aspect-square overflow-hidden rounded-xl bg-slate-100 cursor-pointer"
+                                onClick={() => setSelectedPhoto(imageUrl)}
                               >
                                 <img
                                   src={imageUrl}
@@ -167,41 +121,41 @@ const FoodPage = () => {
                                   className="h-full w-full object-cover"
                                   loading="lazy"
                                 />
-                                {hiddenCount > 0 && isLastPreview && (
-                                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-sm font-semibold text-white">
-                                    +{hiddenCount}
-                                  </div>
-                                )}
                               </div>
                             );
                           })}
                         </div>
                         
+                        {hiddenCount > 0 && (
+                          <span className="text-xs text-slate-400">+{hiddenCount} 张更多</span>
+                        )}
+                        
                         {caption && (
                           <p className="mt-2 text-sm text-slate-600">{caption}</p>
                         )}
-                      </article>
+                        
+                        {group.comments && group.comments.length > 0 && (
+                          <div className="mt-3 space-y-2 border-l-2 border-slate-200 pl-3">
+                            {group.comments.map((comment) => (
+                              <div key={comment.id} className="text-sm">
+                                <p className="text-slate-700">{comment.content}</p>
+                                <p className="text-xs text-slate-400 mt-1">{formatTime(comment.created_at)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
+                
+                {dayIndex < days.length - 1 && (
+                  <div className="my-4 flex items-center justify-center">
+                    <div className="w-12 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+                  </div>
+                )}
               </div>
             ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-4 gap-[2px]">
-            {galleryPhotos.map((photo) => {
-              const imageUrl = getImageUrl(photo.photo_url, 'thumb');
-              return (
-                <div key={photo.id} className="aspect-square overflow-hidden">
-                  <img
-                    src={imageUrl}
-                    alt="美食照片"
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-              );
-            })}
           </div>
         )}
       </section>
@@ -209,10 +163,10 @@ const FoodPage = () => {
       <button
         type="button"
         onClick={handleAddPhoto}
-        className="fixed bottom-24 right-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-primary)] text-white shadow-lg"
+        className="fixed bottom-24 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-[var(--color-primary)] to-orange-400 text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
         aria-label="添加美食照片"
       >
-        <Plus size={24} />
+        <Plus size={28} />
       </button>
 
       <input
@@ -222,6 +176,28 @@ const FoodPage = () => {
         multiple
         className="hidden"
       />
+
+      {selectedPhoto && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <button 
+            className="absolute top-4 right-4 p-2 text-white/70 hover:text-white transition-colors"
+            onClick={() => setSelectedPhoto(null)}
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <img 
+            src={selectedPhoto} 
+            alt="预览" 
+            className="max-w-full max-h-[85vh] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </main>
   );
 };
