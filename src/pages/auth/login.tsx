@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
-import { useGoogleLogin } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../contexts/AuthContext';
 import { BaseInput, BaseButton } from '../../components/atoms';
 
@@ -13,29 +13,18 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      try {
-        // 用 id_token（含 openid scope 时返回）发给后端验证
-        const credential = (tokenResponse as any).id_token;
-        if (!credential) {
-          setError('Google 登录失败：未获取到 id_token');
-          return;
-        }
-        const { password_required } = await googleLogin(credential);
-        if (password_required) {
-          navigate('/auth/set-password');
-        } else {
-          navigate('/');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Google 登录失败');
-      }
-    },
-    onError: () => setError('Google 登录失败，请重试'),
-    scope: 'openid email profile',
-    flow: 'implicit',
-  });
+  const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
+    if (!credentialResponse.credential) {
+      setError('Google 登录失败：未获取到凭据');
+      return;
+    }
+    try {
+      const { password_required } = await googleLogin(credentialResponse.credential);
+      navigate(password_required ? '/auth/set-password' : '/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google 登录失败');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,10 +94,16 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        <BaseButton variant="secondary" onClick={() => handleGoogleLogin()}>
-          <img src="/assets/icon/google.svg" alt="" className="w-5 h-5" />
-          Google 登录
-        </BaseButton>
+        <div className="flex justify-center">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => setError('Google 登录失败，请重试')}
+            width="368"
+            text="signin_with"
+            shape="rectangular"
+            theme="outline"
+          />
+        </div>
 
         <p className="text-center text-sm text-slate-600 mt-6">
           还没有账户？{' '}
