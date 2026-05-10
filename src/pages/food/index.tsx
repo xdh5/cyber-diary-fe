@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Plus, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { api } from '../../services/api';
 import { getImageUrl } from '../../services/cloudinary';
 import type { FoodPhoto, FoodPhotoDay } from '../../types/food';
+import FoodUploadModal from '../../components/organisms/FoodUploadModal';
 
 const formatDateHeader = (dateStr: string): string => {
   const date = new Date(dateStr);
@@ -34,31 +35,24 @@ const sortPhotosDesc = (photos: FoodPhoto[]) => {
 const FoodPage = () => {
   const [days, setDays] = useState<FoodPhotoDay[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showUpload, setShowUpload] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadPhotos = async () => {
+    try {
+      const data = await api.getFoodPhotos();
+      setDays(data);
+    } catch (error) {
+      console.error('加载美食照片失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    let active = true;
-
-    const load = async () => {
-      try {
-        const data = await api.getFoodPhotos();
-        if (!active) return;
-        setDays(data);
-      } catch (error) {
-        console.error('加载美食照片失败:', error);
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-
-    load();
-    return () => { active = false; };
+    loadPhotos();
   }, []);
 
-  const handleAddPhoto = () => {
-    fileInputRef.current?.click();
-  };
 
   return (
     <main className="min-h-[100dvh] bg-gradient-to-b from-slate-50 to-white pb-20">
@@ -83,7 +77,7 @@ const FoodPage = () => {
             <p className="text-sm text-slate-400 mb-6">记录你的每一餐，留住美好时光</p>
             <button
               type="button"
-              onClick={handleAddPhoto}
+              onClick={() => setShowUpload(true)}
               className="px-6 py-2.5 bg-[var(--color-primary)] text-white rounded-full text-sm font-medium hover:bg-[var(--color-primary-hover)] transition-colors"
             >
               开始记录
@@ -162,20 +156,19 @@ const FoodPage = () => {
 
       <button
         type="button"
-        onClick={handleAddPhoto}
-        className="fixed bottom-24 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-[var(--color-primary)] to-orange-400 text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+        onClick={() => setShowUpload(true)}
+        className="fixed bottom-24 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-primary)] text-white shadow-lg hover:bg-[var(--color-primary-hover)] hover:scale-105 transition-all duration-300"
         aria-label="添加美食照片"
       >
         <Plus size={28} />
       </button>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
-        multiple
-        className="hidden"
-      />
+      {showUpload && (
+        <FoodUploadModal
+          onClose={() => setShowUpload(false)}
+          onSuccess={loadPhotos}
+        />
+      )}
 
       {selectedPhoto && (
         <div 

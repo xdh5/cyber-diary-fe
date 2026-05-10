@@ -36,7 +36,7 @@ export const addFoodPhotoComment = (groupId: string, content: string) => {
   });
 };
 
-export const uploadFoodPhotos = async (files: File[], comment?: string) => {
+export const uploadFoodPhotos = async (files: File[], comment?: string, shotDate?: string) => {
   const formData = new FormData();
   const trackId = createTrackId();
 
@@ -45,6 +45,9 @@ export const uploadFoodPhotos = async (files: File[], comment?: string) => {
   });
   if (comment && comment.trim()) {
     formData.append('comment', comment.trim());
+  }
+  if (shotDate) {
+    formData.append('shot_date', shotDate);
   }
 
   return http.post<FoodBatchUploadResult>('/api/v1/food/photos', formData, {

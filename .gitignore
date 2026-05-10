@@ -29,6 +29,7 @@ Thumbs.db
 # Build
 dist/
 build/
+dev-dist/
 .cache/
 .parcel-cache/
 .next/
