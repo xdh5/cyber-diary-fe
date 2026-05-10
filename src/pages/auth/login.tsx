@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { BaseInput, BaseButton } from '../../components/atoms';
+import { googleAuthorize } from '../../services/auth';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -11,6 +12,15 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    try {
+      const { url } = await googleAuthorize();
+      window.location.href = url;
+    } catch {
+      setError('Google 登录暂不可用');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +90,7 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        <BaseButton variant="secondary">
+        <BaseButton variant="secondary" onClick={handleGoogleLogin}>
           <img src="/assets/icon/google.svg" alt="" className="w-5 h-5" />
           Google 登录
         </BaseButton>
