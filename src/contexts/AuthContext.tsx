@@ -12,7 +12,7 @@ interface AuthContextType {
   sendCode: (email: string) => Promise<void>;
   setPassword: (newPassword: string, oldPassword?: string) => Promise<void>;
   updateProfile: (payload: { nickname?: string; avatar_url?: string | null }) => Promise<void>;
-  googleLogin: (code: string) => Promise<{ password_required: boolean }>;
+  googleLogin: (credential: string) => Promise<{ password_required: boolean }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -87,8 +87,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAuthenticated(true);
   };
 
-  const googleLogin = async (code: string) => {
-    const result = await api.googleCallback(code);
+  const googleLogin = async (credential: string) => {
+    const result = await api.googleVerify(credential);
     await refreshUser();
     return { password_required: result.password_required || false };
   };

@@ -15,12 +15,8 @@ export const login = async (email: string, password: string) => {
   return response;
 };
 
-export const googleAuthorize = () => {
-  return http.get('/api/v1/auth/google/authorize');
-};
-
-export const googleCallback = async (code: string) => {
-  const response = await http.get<AuthResponse>(`/api/v1/auth/google/callback?code=${encodeURIComponent(code)}`);
+export const googleVerify = async (credential: string) => {
+  const response = await http.post<AuthResponse>('/api/v1/auth/google/verify', { credential });
   setAuthToken(response.access_token);
   return response;
 };

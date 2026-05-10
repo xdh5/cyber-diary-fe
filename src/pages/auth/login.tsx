@@ -1,26 +1,41 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
+import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../contexts/AuthContext';
 import { BaseInput, BaseButton } from '../../components/atoms';
-import { googleAuthorize } from '../../services/auth';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleGoogleLogin = async () => {
-    try {
-      const { url } = await googleAuthorize();
-      window.location.href = url;
-    } catch {
-      setError('Google 登录暂不可用');
-    }
-  };
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        // 用 id_token（含 openid scope 时返回）发给后端验证
+        const credential = (tokenResponse as any).id_token;
+        if (!credential) {
+          setError('Google 登录失败：未获取到 id_token');
+          return;
+        }
+        const { password_required } = await googleLogin(credential);
+        if (password_required) {
+          navigate('/auth/set-password');
+        } else {
+          navigate('/');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Google 登录失败');
+      }
+    },
+    onError: () => setError('Google 登录失败，请重试'),
+    scope: 'openid email profile',
+    flow: 'implicit',
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +105,7 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        <BaseButton variant="secondary" onClick={handleGoogleLogin}>
+        <BaseButton variant="secondary" onClick={() => handleGoogleLogin()}>
           <img src="/assets/icon/google.svg" alt="" className="w-5 h-5" />
           Google 登录
         </BaseButton>
