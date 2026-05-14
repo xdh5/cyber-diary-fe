@@ -130,7 +130,7 @@ const FoodUploadModal = ({ onClose, onSuccess }: Props) => {
           <CalendarDays size={16} className="text-slate-400 flex-shrink-0" />
           <DatePicker
             selected={date}
-            onChange={(d) => d && setDate(d)}
+            onChange={(d: Date | null) => d && setDate(d)}
             maxDate={new Date()}
             dateFormat="yyyy年MM月dd日"
             className="w-full border-0 bg-transparent text-sm text-slate-700 focus:outline-none cursor-pointer"
