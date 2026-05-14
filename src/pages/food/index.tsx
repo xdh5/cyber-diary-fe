@@ -70,18 +70,8 @@ const FoodPage = () => {
           </div>
         ) : days.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-8">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[var(--color-primary)]/20 to-orange-100 flex items-center justify-center mb-4">
-              <Plus size={32} className="text-[var(--color-primary)]" />
-            </div>
             <h3 className="text-lg font-semibold text-slate-700 mb-2">还没有美食照片</h3>
             <p className="text-sm text-slate-400 mb-6">记录你的每一餐，留住美好时光</p>
-            <button
-              type="button"
-              onClick={() => setShowUpload(true)}
-              className="px-6 py-2.5 bg-[var(--color-primary)] text-white rounded-full text-sm font-medium hover:bg-[var(--color-primary-hover)] transition-colors"
-            >
-              开始记录
-            </button>
           </div>
         ) : (
           <div className="space-y-8">
