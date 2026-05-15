@@ -1,7 +1,9 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
-import { X, ImagePlus, CalendarDays, Loader2 } from 'lucide-react';
+import { X, ImagePlus, CalendarDays, Loader2, MapPin } from 'lucide-react';
+import axios from 'axios';
 import { api } from '../../services/api';
+import { generateDiary } from '../../services/entry';
 import { getCurrentDiaryDate, formatDateString } from '../../utils/date';
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -10,16 +12,18 @@ interface Props {
   onSuccess: () => void;
 }
 
-const FoodUploadModal = ({ onClose, onSuccess }: Props) => {
+const DiaryUploadModal = ({ onClose, onSuccess }: Props) => {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  const [comment, setComment] = useState('');
+  const [text, setText] = useState('');
   const [date, setDate] = useState<Date>(getCurrentDiaryDate());
+  const [district, setDistrict] = useState('');
+  const [locationStatus, setLocationStatus] = useState<'pending' | 'prompt' | 'granted' | 'denied'>('pending');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Client-side image processing: resize + white-balance + brightness + saturation
+  // 图片处理函数（从FoodUploadModal复制）
   const processImageFile = (file: File): Promise<File> => {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
@@ -46,11 +50,9 @@ const FoodUploadModal = ({ onClose, onSuccess }: Props) => {
 
           ctx.drawImage(img, 0, 0, width, height);
 
-          // get pixels
           const imgData = ctx.getImageData(0, 0, width, height);
           const d = imgData.data;
 
-          // compute channel averages
           let rSum = 0, gSum = 0, bSum = 0, count = 0;
           for (let i = 0; i < d.length; i += 4) {
             rSum += d[i];
@@ -63,18 +65,15 @@ const FoodUploadModal = ({ onClose, onSuccess }: Props) => {
           const bAvg = bSum / count;
           const colorAvg = (rAvg + gAvg + bAvg) / 3;
 
-          // processing params (mild)
-          const wbStrength = 0.6; // how strongly to apply auto WB
-          const brightnessAdd = 10; // add raw value to channels
-          const satFactor = 1.1; // 10% more saturation
+          const wbStrength = 0.6;
+          const brightnessAdd = 10;
+          const satFactor = 1.1;
 
-          // apply per-pixel adjustments
           for (let i = 0; i < d.length; i += 4) {
             let r = d[i];
             let g = d[i + 1];
             let b = d[i + 2];
 
-            // mild auto white balance: scale each channel toward the global avg
             const rFactor = Math.max(0.85, Math.min(1.15, colorAvg / (rAvg + 1e-6)));
             const gFactor = Math.max(0.85, Math.min(1.15, colorAvg / (gAvg + 1e-6)));
             const bFactor = Math.max(0.85, Math.min(1.15, colorAvg / (bAvg + 1e-6)));
@@ -82,12 +81,10 @@ const FoodUploadModal = ({ onClose, onSuccess }: Props) => {
             g = g * (1 - wbStrength) + g * gFactor * wbStrength;
             b = b * (1 - wbStrength) + b * bFactor * wbStrength;
 
-            // brightness
             r = Math.min(255, r + brightnessAdd);
             g = Math.min(255, g + brightnessAdd);
             b = Math.min(255, b + brightnessAdd);
 
-            // simple saturation boost: move channel away from luminance
             const lum = 0.299 * r + 0.587 * g + 0.114 * b;
             r = lum + (r - lum) * satFactor;
             g = lum + (g - lum) * satFactor;
@@ -96,12 +93,10 @@ const FoodUploadModal = ({ onClose, onSuccess }: Props) => {
             d[i] = Math.max(0, Math.min(255, Math.round(r)));
             d[i + 1] = Math.max(0, Math.min(255, Math.round(g)));
             d[i + 2] = Math.max(0, Math.min(255, Math.round(b)));
-            // alpha unchanged
           }
 
           ctx.putImageData(imgData, 0, 0);
 
-          // export to blob (jpeg)
           canvas.toBlob(
             (blob) => {
               URL.revokeObjectURL(url);
@@ -128,7 +123,6 @@ const FoodUploadModal = ({ onClose, onSuccess }: Props) => {
   const addFiles = (incoming: File[]) => {
     const valid = incoming.filter((f) => f.type.startsWith('image/'));
     if (!valid.length) return;
-    // Process images sequentially to avoid blocking the UI too hard
     (async () => {
       for (const f of valid) {
         try {
@@ -137,7 +131,6 @@ const FoodUploadModal = ({ onClose, onSuccess }: Props) => {
           const url = URL.createObjectURL(processed);
           setPreviews((prev) => [...prev, url]);
         } catch (e) {
-          // fallback to original
           setFiles((prev) => [...prev, f]);
           const url = URL.createObjectURL(f);
           setPreviews((prev) => [...prev, url]);
@@ -162,20 +155,101 @@ const FoodUploadModal = ({ onClose, onSuccess }: Props) => {
     setPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // 地理位置获取
+  const reverseGeocode = async (lat: number, lng: number): Promise<string | null> => {
+    try {
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`
+      );
+      const data = response.data;
+      const address = data.address || {};
+      const country = address.country || '中国';
+      const province = address.state || address.region || address.province || address.county || '';
+      const cityDistrict =
+        address.city_district || address.district || address.county || address.suburb || address.town || address.village || '';
+      const street = address.road || address.pedestrian || address.footway || address.neighbourhood || address.residential || address.street || '';
+
+      const parts = [country, province, cityDistrict, street]
+        .filter(Boolean)
+        .map((part, index, arr) => (arr.indexOf(part) === index ? part : null))
+        .filter(Boolean) as string[];
+
+      if (parts.length > 0) return parts.join('');
+      if (data.display_name) return data.display_name.split(',').slice(0, 3).join(' ').trim();
+      return null;
+    } catch (err) {
+      console.error('Reverse geocode failed:', err);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    if (locationStatus !== 'pending') return;
+    if (district) {
+      setLocationStatus('granted');
+      return;
+    }
+    if (!navigator.geolocation) {
+      setLocationStatus('denied');
+      setDistrict('未知位置');
+      return;
+    }
+    setLocationStatus('prompt');
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        const label = await reverseGeocode(coords.latitude, coords.longitude);
+        const finalDistrict = label || '未知位置';
+        setDistrict(finalDistrict);
+        setLocationStatus(label ? 'granted' : 'denied');
+      },
+      () => {
+        setLocationStatus('denied');
+        setDistrict('未知位置');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  }, [district, locationStatus]);
+
   const handleSubmit = async () => {
-    if (!files.length && !comment.trim()) {
-      setError('请至少添加一张照片或写一条评论');
+    if (!files.length && !text.trim()) {
+      setError('请至少添加一张图片或输入一些文字');
       return;
     }
     setError('');
     setUploading(true);
+
     try {
-      const shotDate = formatDateString(date);
-      await api.uploadFoodPhotos(files, comment.trim() || undefined, shotDate);
+      // 1. 先上传图片获取URL
+      const uploadedImageUrls: string[] = [];
+      for (const file of files) {
+        const result = await api.uploadImage(file);
+        // 使用原始URL而不是通过cloudinary转换
+        uploadedImageUrls.push(result.url);
+      }
+
+      // 2. 调用后端API生成日记
+      const entryDate = formatDateString(date);
+      const diaryResult = await generateDiary({
+        text: text.trim() || undefined,
+        image_urls: uploadedImageUrls,
+        date: entryDate,
+      });
+
+      // 3. 创建日记
+      const payload = {
+        title: diaryResult.title,
+        content: diaryResult.content,
+        district: district || '未知位置',
+        date: entryDate,
+      };
+
+      await api.createEntry(payload);
+
       previews.forEach((url) => URL.revokeObjectURL(url));
       onSuccess();
       onClose();
     } catch (err) {
+      console.error('上传失败:', err);
       setError(err instanceof Error ? err.message : '上传失败，请重试');
     } finally {
       setUploading(false);
@@ -188,15 +262,13 @@ const FoodUploadModal = ({ onClose, onSuccess }: Props) => {
         className="w-full max-w-lg bg-white rounded-t-2xl p-5 pb-8 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 标题栏 */}
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-800">记录美食</h2>
+          <h2 className="text-base font-semibold text-slate-800">记录日记</h2>
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 transition-colors">
             <X size={20} />
           </button>
         </div>
 
-        {/* 照片区域 */}
         <div
           className="grid grid-cols-4 gap-2"
           onDragOver={(e) => e.preventDefault()}
@@ -214,7 +286,6 @@ const FoodUploadModal = ({ onClose, onSuccess }: Props) => {
             </div>
           ))}
 
-          {/* 添加按钮 */}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -234,16 +305,14 @@ const FoodUploadModal = ({ onClose, onSuccess }: Props) => {
           onChange={handleFileChange}
         />
 
-        {/* 评论 */}
         <textarea
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="写点什么..."
-          rows={2}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="写下今天发生的事情..."
+          rows={4}
           className="w-full text-sm text-slate-700 placeholder-slate-400 border border-slate-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition"
         />
 
-        {/* 日期 */}
         <div className="flex items-center gap-2 text-sm text-slate-600">
           <CalendarDays size={16} className="text-slate-400 flex-shrink-0" />
           <DatePicker
@@ -255,9 +324,21 @@ const FoodUploadModal = ({ onClose, onSuccess }: Props) => {
           />
         </div>
 
+        <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <MapPin size={16} className="text-slate-400 flex-shrink-0" />
+            <span className="text-xs">{district || '正在获取位置...'}</span>
+          </div>
+          <div className="rounded-full bg-slate-100 px-3 py-1.5 text-xs text-slate-500">
+            {locationStatus === 'prompt' && '请求权限'}
+            {locationStatus === 'granted' && '已定位'}
+            {locationStatus === 'denied' && '定位失败'}
+            {locationStatus === 'pending' && '等待中'}
+          </div>
+        </div>
+
         {error && <p className="text-xs text-red-500">{error}</p>}
 
-        {/* 提交 */}
         <button
           type="button"
           onClick={handleSubmit}
@@ -265,11 +346,11 @@ const FoodUploadModal = ({ onClose, onSuccess }: Props) => {
           className="w-full py-3 rounded-xl bg-[var(--color-primary)] text-white text-sm font-medium hover:bg-[var(--color-primary-hover)] disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
         >
           {uploading && <Loader2 size={16} className="animate-spin" />}
-          {uploading ? '上传中...' : '确认上传'}
+          {uploading ? 'AI 正在生成日记...' : '确认上传'}
         </button>
       </div>
     </div>
   );
 };
 
-export default FoodUploadModal;
+export default DiaryUploadModal;

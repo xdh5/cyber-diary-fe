@@ -7,6 +7,7 @@ import type { DiaryEntry, GroupedDiaryEntries } from '../../types/entry';
 import type { ChatLog } from '../../types/chat';
 import { WEEK_LABELS } from '../../types/ui';
 import { Loading } from '../../components/atoms';
+import DiaryUploadModal from './DiaryUploadModal';
 
 const formatMonthLabel = (date: Date) => {
   const year = date.getFullYear();
@@ -70,6 +71,7 @@ const DiaryList = ({ onYearRangeChange }: DiaryListProps) => {
   const [chatLogs, setChatLogs] = useState<ChatLog[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [chatModalTitle, setChatModalTitle] = useState('');
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
   const handleDelete = async (entryId: number) => {
     const confirmed = window.confirm('确认删除这篇日记吗？删除后无法恢复。');
@@ -110,10 +112,32 @@ const DiaryList = ({ onYearRangeChange }: DiaryListProps) => {
     }
   };
 
+  const fetchDiaries = async () => {
+    setLoading(true);
+    try {
+      const data = await api.getEntries();
+      if (Array.isArray(data)) {
+        setEntries(
+          data.map((entry: any) => ({
+            ...entry,
+            date: entry.date || entry.created_at,
+          }))
+        );
+      } else {
+        setError('后端返回的数据格式不正确');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('加载日记失败，请检查后端连接或重新登录');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let active = true;
 
-    const fetchDiaries = async () => {
+    const doFetch = async () => {
       try {
         const data = await api.getEntries();
         if (active && Array.isArray(data)) {
@@ -138,7 +162,7 @@ const DiaryList = ({ onYearRangeChange }: DiaryListProps) => {
       }
     };
 
-    fetchDiaries();
+    doFetch();
     return () => {
       active = false;
     };
@@ -305,9 +329,22 @@ const DiaryList = ({ onYearRangeChange }: DiaryListProps) => {
         </div>
       ) : null}
 
-      <button className="fixed bottom-[6.5rem] right-5 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[var(--theme-blue)] text-white shadow-[0_1.125rem_2.5rem_-1.125rem_rgba(91,206,250,0.8)] transition hover:brightness-95" aria-label="新建日记">
+      <button
+        onClick={() => setUploadModalOpen(true)}
+        className="fixed bottom-[6.5rem] right-5 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[var(--theme-blue)] text-white shadow-[0_1.125rem_2.5rem_-1.125rem_rgba(91,206,250,0.8)] transition hover:brightness-95"
+        aria-label="新建日记"
+      >
         <span className="text-3xl leading-none">+</span>
       </button>
+
+      {uploadModalOpen && (
+        <DiaryUploadModal
+          onClose={() => setUploadModalOpen(false)}
+          onSuccess={() => {
+            fetchDiaries();
+          }}
+        />
+      )}
     </section>
   );
 };

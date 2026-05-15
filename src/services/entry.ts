@@ -31,3 +31,13 @@ export const uploadImage = async (file: File) => {
     },
   });
 };
+
+export interface DiaryGenerateResult {
+  content: string;
+  title: string;
+  date: string;
+}
+
+export const generateDiary = (data: { text?: string; image_urls?: string[]; date: string }) => {
+  return http.post<DiaryGenerateResult>('/api/diary/generate', data);
+};

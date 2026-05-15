@@ -12,7 +12,7 @@ export interface Entry {
   updated_at?: string;
 }
 
-export type EntryPayload = Pick<Entry, 'content' | 'district' | 'title' | 'photo_url' | 'mood'>;
+export type EntryPayload = Pick<Entry, 'content' | 'district' | 'title' | 'photo_url' | 'mood' | 'date'>;
 
 export type DiaryEntry = Entry & {
   date: string;
