@@ -18,14 +18,131 @@ const FoodUploadModal = ({ onClose, onSuccess }: Props) => {
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Client-side image processing: resize + white-balance + brightness + saturation
+  const processImageFile = (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const MAX_DIM = 1024;
+          let { width, height } = img;
+          let scale = 1;
+          if (Math.max(width, height) > MAX_DIM) {
+            scale = MAX_DIM / Math.max(width, height);
+            width = Math.round(width * scale);
+            height = Math.round(height * scale);
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            URL.revokeObjectURL(url);
+            return reject(new Error('Canvas not supported'));
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // get pixels
+          const imgData = ctx.getImageData(0, 0, width, height);
+          const d = imgData.data;
+
+          // compute channel averages
+          let rSum = 0, gSum = 0, bSum = 0, count = 0;
+          for (let i = 0; i < d.length; i += 4) {
+            rSum += d[i];
+            gSum += d[i + 1];
+            bSum += d[i + 2];
+            count++;
+          }
+          const rAvg = rSum / count;
+          const gAvg = gSum / count;
+          const bAvg = bSum / count;
+          const colorAvg = (rAvg + gAvg + bAvg) / 3;
+
+          // processing params (mild)
+          const wbStrength = 0.6; // how strongly to apply auto WB
+          const brightnessAdd = 10; // add raw value to channels
+          const satFactor = 1.1; // 10% more saturation
+
+          // apply per-pixel adjustments
+          for (let i = 0; i < d.length; i += 4) {
+            let r = d[i];
+            let g = d[i + 1];
+            let b = d[i + 2];
+
+            // mild auto white balance: scale each channel toward the global avg
+            const rFactor = Math.max(0.85, Math.min(1.15, colorAvg / (rAvg + 1e-6)));
+            const gFactor = Math.max(0.85, Math.min(1.15, colorAvg / (gAvg + 1e-6)));
+            const bFactor = Math.max(0.85, Math.min(1.15, colorAvg / (bAvg + 1e-6)));
+            r = r * (1 - wbStrength) + r * rFactor * wbStrength;
+            g = g * (1 - wbStrength) + g * gFactor * wbStrength;
+            b = b * (1 - wbStrength) + b * bFactor * wbStrength;
+
+            // brightness
+            r = Math.min(255, r + brightnessAdd);
+            g = Math.min(255, g + brightnessAdd);
+            b = Math.min(255, b + brightnessAdd);
+
+            // simple saturation boost: move channel away from luminance
+            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+            r = lum + (r - lum) * satFactor;
+            g = lum + (g - lum) * satFactor;
+            b = lum + (b - lum) * satFactor;
+
+            d[i] = Math.max(0, Math.min(255, Math.round(r)));
+            d[i + 1] = Math.max(0, Math.min(255, Math.round(g)));
+            d[i + 2] = Math.max(0, Math.min(255, Math.round(b)));
+            // alpha unchanged
+          }
+
+          ctx.putImageData(imgData, 0, 0);
+
+          // export to blob (jpeg)
+          canvas.toBlob(
+            (blob) => {
+              URL.revokeObjectURL(url);
+              if (!blob) return reject(new Error('Processing failed'));
+              const processedFile = new File([blob], file.name, { type: 'image/jpeg' });
+              resolve(processedFile);
+            },
+            'image/jpeg',
+            0.92,
+          );
+        } catch (err) {
+          URL.revokeObjectURL(url);
+          reject(err);
+        }
+      };
+      img.onerror = (e) => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Image load error'));
+      };
+      img.src = url;
+    });
+  };
+
   const addFiles = (incoming: File[]) => {
     const valid = incoming.filter((f) => f.type.startsWith('image/'));
     if (!valid.length) return;
-    setFiles((prev) => [...prev, ...valid]);
-    valid.forEach((f) => {
-      const url = URL.createObjectURL(f);
-      setPreviews((prev) => [...prev, url]);
-    });
+    // Process images sequentially to avoid blocking the UI too hard
+    (async () => {
+      for (const f of valid) {
+        try {
+          const processed = await processImageFile(f);
+          setFiles((prev) => [...prev, processed]);
+          const url = URL.createObjectURL(processed);
+          setPreviews((prev) => [...prev, url]);
+        } catch (e) {
+          // fallback to original
+          setFiles((prev) => [...prev, f]);
+          const url = URL.createObjectURL(f);
+          setPreviews((prev) => [...prev, url]);
+        }
+      }
+    })();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

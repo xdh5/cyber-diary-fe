@@ -58,3 +58,9 @@ export const uploadFoodPhotos = async (files: File[], comment?: string, shotDate
     },
   });
 };
+
+export const deletePhotoGroup = (groupId: string) => {
+  return http.delete<{ message: string; deleted_photos: number; deleted_comments: number }>(
+    `/api/v1/food/groups/${groupId}`
+  );
+};
