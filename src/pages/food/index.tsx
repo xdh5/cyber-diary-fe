@@ -5,6 +5,7 @@ import { getImageUrl } from '../../services/cloudinary';
 import { deletePhotoGroup } from '../../services/food';
 import type { FoodPhoto, FoodPhotoDay, FoodPhotoGroup } from '../../types/food';
 import FoodUploadModal from '../../components/organisms/FoodUploadModal';
+import { Loading } from '../../components/atoms';
 
 const formatDateHeader = (dateStr: string): string => {
   const date = new Date(dateStr);
@@ -148,6 +149,15 @@ const SwipeablePhotoGroup = ({
             transform: `translateX(${swipeOffset > 0 ? -Math.min(swipeOffset, 60) : 0}px)`,
           }}
         >
+          {isDeleting && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur-[1px]">
+              <div className="flex flex-col items-center gap-2 rounded-2xl bg-white/90 px-4 py-3 shadow-lg">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-primary)] border-t-transparent" />
+                <span className="text-xs font-medium text-slate-500">删除中...</span>
+              </div>
+            </div>
+          )}
+
           <div className="p-0">
             <div className="grid grid-cols-3 gap-2">
               {previewPhotos.map((photo) => {
@@ -259,11 +269,11 @@ const FoodPage = () => {
 
   const handleGroupDelete = (groupId: string) => {
     setDeletingGroupId(groupId);
-    // 删除后重新加载照片列表
-    setTimeout(() => {
-      loadPhotos();
+    // 给用户留出一个短暂的删除动画，再刷新列表
+    setTimeout(async () => {
+      await loadPhotos();
       setDeletingGroupId(null);
-    }, 300);
+    }, 700);
   };
 
   return (
@@ -274,12 +284,9 @@ const FoodPage = () => {
         </div>
       </header>
 
-      <section className="px-4 py-5">
+      <section className="bg-white px-4 py-5">
         {loading ? (
-          <div className="py-20 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-[var(--color-primary)] border-t-transparent mb-4"></div>
-            <p className="text-sm text-slate-400">加载中...</p>
-          </div>
+          <Loading />
         ) : days.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-8">
             <h3 className="text-lg font-semibold text-slate-700 mb-2">还没有美食照片</h3>

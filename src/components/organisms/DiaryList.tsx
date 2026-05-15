@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { BookOpenText, CalendarDays, Sparkles, X } from 'lucide-react';
 import { api } from '../../services/api';
 import { getImageUrl } from '../../services/cloudinary';
 import type { DiaryEntry, GroupedDiaryEntries } from '../../types/entry';
 import type { ChatLog } from '../../types/chat';
 import { WEEK_LABELS } from '../../types/ui';
+import { Loading } from '../../components/atoms';
 
 const formatMonthLabel = (date: Date) => {
   const year = date.getFullYear();
@@ -55,7 +56,11 @@ const formatApiDate = (value?: string) => {
   return date.toISOString().slice(0, 10);
 };
 
-const DiaryList = () => {
+interface DiaryListProps {
+  onYearRangeChange?: (yearRange: string | null) => void;
+}
+
+const DiaryList = ({ onYearRangeChange }: DiaryListProps) => {
   const navigate = useNavigate();
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,6 +147,27 @@ const DiaryList = () => {
   const groupedEntries = useMemo(() => groupDiariesByMonth(entries), [entries]);
   const groupedLabels = Object.keys(groupedEntries);
 
+  useEffect(() => {
+    if (entries.length === 0) {
+      onYearRangeChange?.(null);
+      return;
+    }
+
+    const years = entries.map(entry => {
+      const date = new Date(entry.date || entry.created_at);
+      return date.getFullYear();
+    });
+
+    const minYear = Math.min(...years);
+    const maxYear = Math.max(...years);
+
+    if (minYear === maxYear) {
+      onYearRangeChange?.(`${minYear}年`);
+    } else {
+      onYearRangeChange?.(`${minYear} - ${maxYear}年`);
+    }
+  }, [entries, onYearRangeChange]);
+
   return (
     <section className="relative pb-24">
       {error ? (
@@ -150,11 +176,18 @@ const DiaryList = () => {
         </div>
       ) : null}
 
-      {loading ? <div className="mb-3 text-sm text-slate-500">加载中...</div> : null}
+      {loading ? (
+        <Loading />
+      ) : groupedLabels.length === 0 ? (
+        <div className="flex w-full flex-col items-center justify-center px-5 py-8">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[linear-gradient(180deg,rgba(91,206,250,0.16),rgba(91,206,250,0.06))] text-[var(--theme-blue)]">
+            <BookOpenText size={28} />
+          </div>
 
-      {groupedLabels.length === 0 ? (
-        <div className="rounded-[1.5rem] bg-white px-4 py-10 text-center text-slate-500 shadow-[0_0.5rem_1.75rem_rgba(15,23,42,0.06)]">
-          暂无日记条目
+          <h3 className="mt-4 text-xl font-semibold text-slate-900">还没有日记条目</h3>
+          <p className="mt-2 max-w-[24rem] text-center text-sm leading-6 text-slate-500">
+            把今天的心情、路上的风景或一顿饭记下来，时间线会慢慢完整。
+          </p>
         </div>
       ) : (
         <div className="space-y-4">

@@ -1,51 +1,28 @@
 import { useState } from 'react';
 import DiaryList from '../../components/organisms/DiaryList';
-import CalendarView from '../../components/organisms/CalendarView';
-import MapView from '../../components/organisms/MapView';
-import type { TabKey } from '../../types/ui';
-
-const navItems = [
-  { key: 'list', label: '列表' },
-  { key: 'calendar', label: '日历' },
-  { key: 'map', label: '地图' },
-] as const;
 
 const JournalPage = () => {
-  const [activeTab, setActiveTab] = useState<TabKey>('list');
+  const [yearRange, setYearRange] = useState<string | null>(null);
 
   return (
-    <main className="min-h-0 bg-slate-100 pb-0">
-      <section className="bg-[linear-gradient(180deg,#5BCEFA_0%,#6ED6FF_58%,#8AE1FF_100%)] px-0 pb-4 pt-4 text-slate-950">
-        <div className="flex items-start justify-between gap-4">
-          <div className="px-4 pt-1">
-            <p className="text-4xl font-semibold tracking-[-0.04em] text-white drop-shadow-[0_1px_12px_rgba(255,255,255,0.18)]">日志</p>
-            <p className="mt-1 text-sm font-medium text-white/85">2023 - 2026年</p>
-          </div>
-        </div>
+    <main className="min-h-[100dvh] overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(91,206,250,0.22),_transparent_40%),linear-gradient(180deg,#f6fbff_0%,#eef6ff_38%,#f8fbff_100%)] pb-0 text-slate-900">
+      <section className="relative overflow-hidden">
 
-        <div className="mx-4 mt-5 flex items-center rounded-[1.5rem] bg-white/92 px-4 py-3 shadow-[0_1.25rem_3rem_rgba(15,23,42,0.12)] backdrop-blur-xl">
-          {navItems.map((item) => {
-            const active = activeTab === item.key;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => setActiveTab(item.key)}
-                className="relative flex flex-1 items-center justify-center py-2 text-sm font-medium transition"
-                style={{ color: active ? '#111827' : '#9CA3AF' }}
-              >
-                {item.label}
-                {active ? <span className="absolute -bottom-0.5 h-1 w-5 rounded-full bg-[var(--theme-blue)]" /> : null}
-              </button>
-            );
-          })}
+        <div className="relative bg-[linear-gradient(180deg,#56c8ff_0%,#7ddcff_100%)] px-5 pb-5 pt-5 shadow-[0_1.5rem_3rem_rgba(72,180,232,0.24)]">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-4xl font-semibold tracking-[-0.04em] text-white drop-shadow-[0_1px_12px_rgba(255,255,255,0.18)]">日志</p>
+              {yearRange && <p className="mt-1 text-sm font-medium text-white/85">{yearRange}</p>}
+            </div>
+            <div className="hidden rounded-full border border-white/30 bg-white/15 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-sm sm:block">
+              只看日志
+            </div>
+          </div>
         </div>
       </section>
 
-      <div className="-mt-3 bg-slate-100 px-0 pb-6 pt-3">
-        {activeTab === 'list' && <DiaryList />}
-        {activeTab === 'calendar' && <CalendarView />}
-        {activeTab === 'map' && <MapView />}
+      <div className="bg-white flex min-h-[calc(100dvh-140px)] items-center justify-center pb-6 pt-1">
+        <DiaryList onYearRangeChange={setYearRange} />
       </div>
     </main>
   );
