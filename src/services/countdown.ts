@@ -21,33 +21,22 @@ export interface CountdownUpdate {
   emoji?: string;
 }
 
-export const countdownService = {
-  // Get all countdowns
-  async getCountdowns(): Promise<Countdown[]> {
-    const response = await http.get('/api/v1/countdown/');
-    return response.data;
-  },
+export const getCountdowns = () => {
+  return http.get<Countdown[]>('/api/v1/countdown/');
+};
 
-  // Create a new countdown
-  async createCountdown(data: CountdownCreate): Promise<Countdown> {
-    const response = await http.post('/api/v1/countdown/', data);
-    return response.data;
-  },
+export const getCountdown = (id: number) => {
+  return http.get<Countdown>(`/api/v1/countdown/${id}`);
+};
 
-  // Get a specific countdown
-  async getCountdown(id: number): Promise<Countdown> {
-    const response = await http.get(`/api/v1/countdown/${id}`);
-    return response.data;
-  },
+export const createCountdown = (data: CountdownCreate) => {
+  return http.post<Countdown>('/api/v1/countdown/', data);
+};
 
-  // Update a countdown
-  async updateCountdown(id: number, data: CountdownUpdate): Promise<Countdown> {
-    const response = await http.patch(`/api/v1/countdown/${id}`, data);
-    return response.data;
-  },
+export const updateCountdown = (id: number, data: CountdownUpdate) => {
+  return http.patch<Countdown>(`/api/v1/countdown/${id}`, data);
+};
 
-  // Delete a countdown
-  async deleteCountdown(id: number): Promise<void> {
-    await http.delete(`/api/v1/countdown/${id}`);
-  },
+export const deleteCountdown = (id: number) => {
+  return http.delete(`/api/v1/countdown/${id}`);
 };

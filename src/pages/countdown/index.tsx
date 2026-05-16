@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Plus, Trash2, Edit2, X } from 'lucide-react';
 import { BaseButton, BaseInput } from '../../components/atoms';
-import { countdownService, type Countdown } from '../../services/countdown';
+import { getCountdowns, createCountdown, updateCountdown, deleteCountdown, type Countdown } from '../../services/countdown';
 import { Loading } from '../../components/atoms';
 import { getCurrentDiaryDate, formatDateString } from '../../utils/date';
 
@@ -39,11 +39,12 @@ const CountdownPage = () => {
   const loadCountdowns = async () => {
     try {
       setIsLoading(true);
-      const data = await countdownService.getCountdowns();
-      setCountdowns(data);
+      const data = await getCountdowns();
+      setCountdowns(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load countdowns:', error);
       setHasError(true);
+      setCountdowns([]);
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +78,7 @@ const CountdownPage = () => {
     try {
       setIsSaving(true);
       if (editingId) {
-        const updated = await countdownService.updateCountdown(editingId, {
+        const updated = await updateCountdown(editingId, {
           name: formData.name,
           target_date: formData.targetDate,
           emoji: formData.emoji,
@@ -87,7 +88,7 @@ const CountdownPage = () => {
         );
         setEditingId(null);
       } else {
-        const newCountdown = await countdownService.createCountdown({
+        const newCountdown = await createCountdown({
           name: formData.name,
           target_date: formData.targetDate,
           emoji: formData.emoji,
@@ -118,7 +119,7 @@ const CountdownPage = () => {
   const handleDelete = async (id: number) => {
     if (window.confirm('确定删除吗？')) {
       try {
-        await countdownService.deleteCountdown(id);
+        await deleteCountdown(id);
         setCountdowns(countdowns.filter((item) => item.id !== id));
       } catch (error) {
         console.error('Failed to delete countdown:', error);
