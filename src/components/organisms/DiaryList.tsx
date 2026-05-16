@@ -172,13 +172,17 @@ const DiaryList = ({ onYearRangeChange }: DiaryListProps) => {
   const groupedLabels = Object.keys(groupedEntries);
 
   useEffect(() => {
+    if (!onYearRangeChange) return;
+    
     if (entries.length === 0) {
-      onYearRangeChange?.(null);
+      onYearRangeChange(null);
       return;
     }
 
     const years = entries.map(entry => {
-      const date = new Date(entry.date || entry.created_at);
+      const dateStr = entry.date || entry.created_at;
+      if (!dateStr) return new Date().getFullYear();
+      const date = new Date(dateStr);
       return date.getFullYear();
     });
 
@@ -186,9 +190,9 @@ const DiaryList = ({ onYearRangeChange }: DiaryListProps) => {
     const maxYear = Math.max(...years);
 
     if (minYear === maxYear) {
-      onYearRangeChange?.(`${minYear}年`);
+      onYearRangeChange(`${minYear}年`);
     } else {
-      onYearRangeChange?.(`${minYear} - ${maxYear}年`);
+      onYearRangeChange(`${minYear} - ${maxYear}年`);
     }
   }, [entries, onYearRangeChange]);
 
