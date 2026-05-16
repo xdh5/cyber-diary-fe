@@ -288,15 +288,13 @@ const EditorPage = () => {
   return (
     <div className="fixed inset-0 bg-slate-50 text-slate-900">
       <header className="fixed top-0 inset-x-0 z-50 border-b border-slate-200 bg-white shadow-sm">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
-          <button onClick={handleCancel} className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition">
-            <ArrowLeft size={20} />
-            <span className="text-sm font-medium">取消</span>
-          </button>
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-2 py-3">
 
-          <div className="flex-1 ml-6 text-center">
-            <p className="text-sm text-slate-500">{currentDate}</p>
-            <p className="mt-1 text-xs text-slate-400">{hasChanges ? '未保存的改动' : '已保存'}</p>
+          <div className="flex flex-1 ml-2 text-center">
+            <button onClick={handleCancel} className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition">
+              <ArrowLeft size={20} />
+            </button>
+            <p className="text-sm text-slate-500 flex-1">{currentDate}</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -313,7 +311,7 @@ const EditorPage = () => {
         </div>
       </header>
 
-      <main className="pt-20 h-screen flex flex-col overflow-hidden">
+      <main className="pt-10 h-screen flex flex-col overflow-hidden">
         {/* Geographic location was moved below the textarea */}
 
         {isEditing ? (
@@ -371,9 +369,9 @@ const EditorPage = () => {
             />
           </div>
         ) : (
-          <div className="flex-1 overflow-auto bg-white px-6 py-6">
+          <div className="flex-1 overflow-auto bg-white">
             <div className="mx-auto max-w-3xl">
-              {title && <h1 className="text-2xl font-bold text-slate-900 mb-6">{title}</h1>}
+              {title && <h1 className="text-xl font-bold text-slate-900 pl-4 py-6">{title}</h1>}
               {sanitizedContent ? (
                 <article className="diary-richtext-preview ql-editor" dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
               ) : (
@@ -382,21 +380,6 @@ const EditorPage = () => {
             </div>
           </div>
         )}
-
-        <div className="border-t border-slate-200 bg-white px-6 py-4 flex-shrink-0">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium text-slate-500">地理位置自动记录</p>
-              <p className="mt-1 text-sm font-semibold text-slate-800">{district || '正在获取位置...'}</p>
-            </div>
-            <div className="rounded-full bg-slate-50 px-3 py-1.5 text-xs text-slate-500 shadow-sm border border-slate-100">
-              {locationStatus === 'prompt' && '请求权限'}
-              {locationStatus === 'granted' && '已定位'}
-              {locationStatus === 'denied' && '定位失败'}
-              {locationStatus === 'pending' && '等待中'}
-            </div>
-          </div>
-        </div>
       </main>
 
       {!isEditing && (
