@@ -5,6 +5,8 @@ import TabBar from './components/organisms/TabBar';
 import TodayPage from './pages/today';
 import JournalPage from './pages/journal';
 import FoodPage from './pages/food';
+import CountdownPage from './pages/countdown';
+import RecordsPage from './pages/records';
 import EditorPage from './pages/editor';
 import LoginPage from './pages/auth/login';
 import RegisterPage from './pages/auth/register';
@@ -19,6 +21,8 @@ const App = () => {
   const hideNav = location.pathname === '/editor' || location.pathname.startsWith('/auth') || isTodayChatModal;
   const isTodayPage = location.pathname === '/today' || location.pathname === '/';
   const isJournalPage = location.pathname === '/journal';
+  const isRecordsPage = location.pathname === '/records';
+  const isCountdownPage = location.pathname === '/countdown';
 
   return (
     <AuthProvider>
@@ -37,12 +41,12 @@ const App = () => {
               <ProtectedRoute>
                 <div
                   className={
-                    isTodayPage || isJournalPage
+                    isTodayPage || isJournalPage || isRecordsPage || isCountdownPage
                       ? ''
                       : 'mx-auto max-w-2xl px-4 pt-6 sm:px-6'
                   }
                   style={
-                    isTodayPage || isJournalPage
+                    isTodayPage || isJournalPage || isRecordsPage || isCountdownPage
                       ? undefined
                       : {
                           paddingBottom:
@@ -53,6 +57,8 @@ const App = () => {
                   <Routes>
                     <Route path="/" element={<Navigate to="/today" replace />} />
                     <Route path="/today" element={<TodayPage />} />
+                    <Route path="/records" element={<RecordsPage />} />
+                    <Route path="/countdown" element={<CountdownPage />} />
                     <Route path="/food" element={<FoodPage />} />
                     <Route path="/journal" element={<JournalPage />} />
                     <Route path="/editor" element={<EditorPage />} />

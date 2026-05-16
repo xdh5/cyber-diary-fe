@@ -1,11 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { BookOpen, SunMedium, UtensilsCrossed } from 'lucide-react';
+import { BookOpen, SunMedium, Archive } from 'lucide-react';
 
 const TabBar = () => {
   const tabs = [
     { path: '/today', label: '今天', icon: SunMedium },
-    { path: '/food', label: '美食', icon: UtensilsCrossed },
-    { path: '/journal', label: '日记本', icon: BookOpen },
+    { path: '/records', label: '记录', icon: Archive },
   ];
 
   return (
