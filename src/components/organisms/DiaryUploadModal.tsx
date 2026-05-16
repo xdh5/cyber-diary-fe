@@ -3,7 +3,7 @@ import DatePicker from 'react-datepicker';
 import { X, ImagePlus, CalendarDays, Loader2, MapPin } from 'lucide-react';
 import axios from 'axios';
 import { api } from '../../services/api';
-import { generateDiary } from '../../services/entry';
+import { generateDiary, generateDiaryStream } from '../../services/entry';
 import { getCurrentDiaryDate, formatDateString } from '../../utils/date';
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -21,6 +21,7 @@ const DiaryUploadModal = ({ onClose, onSuccess }: Props) => {
   const [locationStatus, setLocationStatus] = useState<'pending' | 'prompt' | 'granted' | 'denied'>('pending');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [generatingProgress, setGeneratingProgress] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 图片处理函数（从FoodUploadModal复制）
@@ -230,6 +231,7 @@ const DiaryUploadModal = ({ onClose, onSuccess }: Props) => {
       return;
     }
     setError('');
+    setGeneratingProgress('');
     setUploading(true);
 
     try {
@@ -241,13 +243,24 @@ const DiaryUploadModal = ({ onClose, onSuccess }: Props) => {
         uploadedImageUrls.push(result.url);
       }
 
-      // 2. 调用后端API生成日记
+      // 2. 调用后端API流式生成日记
       const entryDate = formatDateString(date);
-      const diaryResult = await generateDiary({
-        text: text.trim() || undefined,
-        image_urls: uploadedImageUrls,
-        date: entryDate,
-      });
+      const diaryResult = await generateDiaryStream(
+        {
+          text: text.trim() || undefined,
+          image_urls: uploadedImageUrls,
+          date: entryDate,
+        },
+        (event) => {
+          if (event.status === 'generating') {
+            setGeneratingProgress('🚀 开始生成日记...');
+          } else if (event.status === 'streaming') {
+            setGeneratingProgress(`📝 生成中... (${event.content?.length || 0} 字)`);
+          } else if (event.status === 'complete') {
+            setGeneratingProgress('✅ 生成完成');
+          }
+        }
+      );
 
       // 3. 创建日记
       const payload = {
@@ -267,6 +280,7 @@ const DiaryUploadModal = ({ onClose, onSuccess }: Props) => {
       setError(err instanceof Error ? err.message : '上传失败，请重试');
     } finally {
       setUploading(false);
+      setGeneratingProgress('');
     }
   };
 
@@ -352,6 +366,12 @@ const DiaryUploadModal = ({ onClose, onSuccess }: Props) => {
         </div>
 
         {error && <p className="text-xs text-red-500">{error}</p>}
+
+        {generatingProgress && (
+          <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+            <p className="text-xs text-blue-700">{generatingProgress}</p>
+          </div>
+        )}
 
         <button
           type="button"
