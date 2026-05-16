@@ -21,7 +21,7 @@ const JournalPage = () => {
         </div>
       </section>
 
-      <div className="bg-white flex min-h-[calc(100dvh-140px)] items-center justify-center pb-6 pt-1">
+      <div className="bg-white min-h-[calc(100dvh-140px)] pb-6 pt-1">
         <DiaryList onYearRangeChange={setYearRange} />
       </div>
     </main>

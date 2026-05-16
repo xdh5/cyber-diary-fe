@@ -5,6 +5,7 @@ import axios from 'axios';
 import { api } from '../../services/api';
 import { generateDiary, generateDiaryStream } from '../../services/entry';
 import { getCurrentDiaryDate, formatDateString } from '../../utils/date';
+import { BaseTextarea } from '../../components/atoms';
 import 'react-datepicker/dist/react-datepicker.css';
 
 interface Props {
@@ -15,7 +16,7 @@ interface Props {
 const DiaryUploadModal = ({ onClose, onSuccess }: Props) => {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  const [text, setText] = useState('');
+  const [comment, setComment] = useState('');
   const [date, setDate] = useState<Date>(getCurrentDiaryDate());
   const [district, setDistrict] = useState('');
   const [locationStatus, setLocationStatus] = useState<'pending' | 'prompt' | 'granted' | 'denied'>('pending');
@@ -226,7 +227,7 @@ const DiaryUploadModal = ({ onClose, onSuccess }: Props) => {
   }, [district, locationStatus]);
 
   const handleSubmit = async () => {
-    if (!files.length && !text.trim()) {
+    if (!files.length && !comment.trim()) {
       setError('请至少添加一张图片或输入一些文字');
       return;
     }
@@ -247,7 +248,7 @@ const DiaryUploadModal = ({ onClose, onSuccess }: Props) => {
       const entryDate = formatDateString(date);
       const diaryResult = await generateDiaryStream(
         {
-          text: text.trim() || undefined,
+          text: comment.trim() || undefined,
           image_urls: uploadedImageUrls,
           date: entryDate,
         },
@@ -333,12 +334,11 @@ const DiaryUploadModal = ({ onClose, onSuccess }: Props) => {
           onChange={handleFileChange}
         />
 
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
+        <BaseTextarea
+          value={comment}
+          onChange={(e) => setComment((e.target as HTMLTextAreaElement).value)}
           placeholder="写下今天发生的事情..."
           rows={4}
-          className="w-full text-sm text-slate-700 placeholder-slate-400 border border-slate-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition"
         />
 
         <div className="flex items-center gap-2 text-sm text-slate-600">

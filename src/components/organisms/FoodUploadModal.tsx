@@ -3,6 +3,7 @@ import DatePicker from 'react-datepicker';
 import { X, ImagePlus, CalendarDays, Loader2 } from 'lucide-react';
 import { api } from '../../services/api';
 import { getCurrentDiaryDate, formatDateString } from '../../utils/date';
+import { BaseTextarea } from '../../components/atoms';
 import 'react-datepicker/dist/react-datepicker.css';
 
 interface Props {
@@ -235,12 +236,11 @@ const FoodUploadModal = ({ onClose, onSuccess }: Props) => {
         />
 
         {/* 评论 */}
-        <textarea
+        <BaseTextarea
           value={comment}
-          onChange={(e) => setComment(e.target.value)}
+          onChange={(e) => setComment((e.target as HTMLTextAreaElement).value)}
           placeholder="写点什么..."
           rows={2}
-          className="w-full text-sm text-slate-700 placeholder-slate-400 border border-slate-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition"
         />
 
         {/* 日期 */}

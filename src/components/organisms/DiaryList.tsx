@@ -402,8 +402,10 @@ const DiaryList = ({ onYearRangeChange }: DiaryListProps) => {
     }
   }, [entries, onYearRangeChange]);
 
+  const isEmptyState = loading || groupedLabels.length === 0;
+
   return (
-    <section className="relative pb-24">
+    <section className={`relative pb-24 ${isEmptyState ? 'min-h-[calc(100dvh-140px)] flex flex-col items-center justify-center' : ''}`}>
       {error ? (
         <div className="mb-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-sm">
           {error}
