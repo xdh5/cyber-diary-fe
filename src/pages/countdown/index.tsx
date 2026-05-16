@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, Edit2, X } from 'lucide-react';
-import { BaseButton, BaseInput } from '../../components/atoms';
+import { Plus, X } from 'lucide-react';
+import { BaseButton, BaseInput, BaseSwipeable } from '../../components/atoms';
 import { getCountdowns, createCountdown, updateCountdown, deleteCountdown, type Countdown } from '../../services/countdown';
 import { Loading } from '../../components/atoms';
 import { getCurrentDiaryDate, formatDateString } from '../../utils/date';
@@ -119,14 +119,12 @@ const CountdownPage = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm('确定删除吗？')) {
-      try {
-        await deleteCountdown(id);
-        setCountdowns(countdowns.filter((item) => item.id !== id));
-      } catch (error) {
-        console.error('Failed to delete countdown:', error);
-        alert('删除失败，请重试');
-      }
+    try {
+      await deleteCountdown(id);
+      setCountdowns(countdowns.filter((item) => item.id !== id));
+    } catch (error) {
+      console.error('Failed to delete countdown:', error);
+      alert('删除失败，请重试');
     }
   };
 
@@ -208,37 +206,29 @@ const CountdownPage = () => {
                 });
 
                 return (
-                  <div
+                  <BaseSwipeable
                     key={item.id}
-                    className="flex items-center justify-between rounded-lg bg-gradient-to-r from-purple-50 to-purple-100 p-4"
+                    onDelete={() => handleDelete(item.id)}
+                    confirmTitle="确定删除吗？"
+                    confirmMessage="删除后无法恢复"
+                    showEdit={true}
+                    onEdit={() => handleEdit(item)}
                   >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <span className="text-3xl">{item.emoji}</span>
-                        <div>
-                          <h3 className="font-medium text-slate-900">{item.name}</h3>
-                          <p className="text-sm text-slate-600 mt-1">{displayDate}</p>
+                    <div className="flex items-center justify-between rounded-lg bg-gradient-to-r from-purple-50 to-purple-100 p-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl">{item.emoji}</span>
+                          <div>
+                            <h3 className="font-medium text-slate-900">{item.name}</h3>
+                            <p className="text-sm text-slate-600 mt-1">{displayDate}</p>
+                          </div>
                         </div>
+                        <p className="text-xl font-bold text-purple-600 mt-3">
+                          {getDaysDisplay(days)}
+                        </p>
                       </div>
-                      <p className="text-xl font-bold text-purple-600 mt-3">
-                        {getDaysDisplay(days)}
-                      </p>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(item)}
-                        className="rounded-lg p-2 text-purple-600 hover:bg-purple-200 transition"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="rounded-lg p-2 text-red-600 hover:bg-red-200 transition"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
+                  </BaseSwipeable>
                 );
               })}
             </div>

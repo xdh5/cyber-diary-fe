@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpenText, CalendarDays, Sparkles, X, Trash2 } from 'lucide-react';
+import { BookOpenText, CalendarDays, Sparkles, X } from 'lucide-react';
 import { api } from '../../services/api';
 import { getImageUrl } from '../../services/cloudinary';
 import type { DiaryEntry, GroupedDiaryEntries } from '../../types/entry';
 import type { ChatLog } from '../../types/chat';
 import { WEEK_LABELS } from '../../types/ui';
-import { Loading } from '../../components/atoms';
+import { Loading, BaseSwipeable } from '../../components/atoms';
 import DiaryUploadModal from './DiaryUploadModal';
 
 const formatMonthLabel = (date: Date) => {
@@ -67,71 +67,10 @@ interface SwipeableDiaryItemProps {
 
 const SwipeableDiaryItem = ({ diary, isLast, onDelete, onOpenChat, isDeleting }: SwipeableDiaryItemProps) => {
   const navigate = useNavigate();
-  const [swipeOffset, setSwipeOffset] = useState(0);
-  const [isSwiping, setIsSwiping] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const touchStartX = useRef<number>(0);
-  const touchStartY = useRef<number>(0);
-  const lastTouchX = useRef<number>(0);
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (isDeleting) return;
-    touchStartX.current = e.touches[0].clientX;
-    lastTouchX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-    setIsSwiping(true);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isSwiping || isDeleting) return;
-
-    const currentX = e.touches[0].clientX;
-    const currentY = e.touches[0].clientY;
-    const diffY = Math.abs(currentY - touchStartY.current);
-
-    // 如果用户做垂直滚动，取消滑动手势
-    if (diffY > 10) {
-      setIsSwiping(false);
-      return;
-    }
-
-    const dx = currentX - lastTouchX.current;
-    lastTouchX.current = currentX;
-
-    const MAX = 100;
-
-    if (dx < 0) {
-      // 左滑：增加偏移（显示删除）
-      setSwipeOffset((prev) => Math.min(prev + Math.abs(dx), MAX));
-    } else if (dx > 0) {
-      // 右滑：减少偏移（取消删除）
-      setSwipeOffset((prev) => Math.max(prev - dx, 0));
-    }
-  };
-
-  const handleTouchEnd = () => {
-    setIsSwiping(false);
-
-    // 如果滑动距离不足则回弹，否则保持打开状态
-    if (swipeOffset < 50) {
-      setSwipeOffset(0);
-    }
-  };
-
-  const handleDeleteClick = () => {
-    setShowConfirm(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    setShowConfirm(false);
+  const handleConfirmDelete = () => {
     if (!diary.id) return;
     onDelete(diary.id);
-  };
-
-  const handleCancelDelete = () => {
-    setShowConfirm(false);
-    setSwipeOffset(0);
   };
 
   const { weekDay, day } = formatDate(diary.date);
@@ -139,130 +78,55 @@ const SwipeableDiaryItem = ({ diary, isLast, onDelete, onOpenChat, isDeleting }:
   const previewText = diary.preview_text || '';
 
   return (
-    <>
+    <BaseSwipeable
+      onDelete={handleConfirmDelete}
+      isDeleting={isDeleting}
+      rounded={false}
+    >
       <div
-        ref={containerRef}
-        className="relative overflow-hidden"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/editor?id=${diary.id}`);
+        }}
       >
-        {/* 删除背景按钮 */}
-        <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-4 z-0">
-          <Trash2 size={20} className="text-white" />
-        </div>
-
-        {/* 内容容器 */}
-        <div
-          className="relative bg-white transition-transform duration-150 ease-out"
-          style={{
-            transform: `translateX(${swipeOffset > 0 ? -Math.min(swipeOffset, 60) : 0}px)`,
-          }}
-          onClick={(e) => {
-            if (swipeOffset > 0) {
-              e.preventDefault();
-              e.stopPropagation();
-              return;
-            }
-            navigate(`/editor?id=${diary.id}`);
-          }}
+        <article
+          className={`flex cursor-pointer gap-3 px-4 py-4 transition active:bg-slate-50 ${
+            isLast ? '' : 'border-b border-slate-100'
+          }`}
         >
-          {isDeleting && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur-[1px]">
-              <div className="flex flex-col items-center gap-2 rounded-2xl bg-white/90 px-4 py-3 shadow-lg">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-primary)] border-t-transparent" />
-                <span className="text-xs font-medium text-slate-500">删除中...</span>
-              </div>
-            </div>
-          )}
-
-          <article
-            className={`flex cursor-pointer gap-3 px-4 py-4 transition active:bg-slate-50 ${
-              isLast ? '' : 'border-b border-slate-100'
-            }`}
-          >
-            <div className="flex w-12 shrink-0 flex-col items-center pt-0.5 text-center">
-              <p className="text-xs font-medium text-slate-500">{weekDay}</p>
-              <p className="mt-1 text-2xl font-semibold leading-none text-slate-950">{day}</p>
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <h3 className="truncate text-base font-semibold text-slate-950">{diary.title || '未命名日记'}</h3>
-              {previewText ? (
-                <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">{previewText}</p>
-              ) : null}
-              <p className="mt-2 text-xs text-slate-400">{diary.district || '地点未知'}</p>
-            </div>
-
-            {previewImageUrl ? (
-              <div className="ml-2 h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-2xl bg-slate-100">
-                <img src={getImageUrl(previewImageUrl, 'thumb')} alt={diary.title || '日记缩略图'} className="h-full w-full object-cover" />
-              </div>
-            ) : null}
-
-            <div className="sr-only">
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onOpenChat(diary);
-                }}
-              >
-                查看原始对话
-              </button>
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  if (!diary.id) return;
-                  onDelete(diary.id);
-                }}
-              >
-                删除日记
-              </button>
-            </div>
-          </article>
-        </div>
-
-        {/* 删除按钮（滑动时显示） */}
-        {swipeOffset > 0 && (
-          <button
-            onClick={handleDeleteClick}
-            className="absolute right-0 top-0 h-full px-4 flex items-center justify-center bg-red-500 text-white z-10"
-            style={{
-              width: `${Math.min(swipeOffset, 60)}px`,
-              opacity: Math.min(swipeOffset / 60, 1),
-            }}
-          >
-            <Trash2 size={20} />
-          </button>
-        )}
-      </div>
-
-      {/* 删除确认弹窗 */}
-      {showConfirm && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/45">
-          <div className="rounded-3xl bg-white p-6 shadow-2xl max-w-sm w-11/12">
-            <h3 className="text-lg font-semibold text-slate-900">确认删除</h3>
-            <p className="mt-2 text-sm text-slate-600">确认删除这篇日记吗？删除后无法恢复。</p>
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={handleCancelDelete}
-                className="flex-1 rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-slate-200"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="flex-1 rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"
-              >
-                删除
-              </button>
-            </div>
+          <div className="flex w-12 shrink-0 flex-col items-center pt-0.5 text-center">
+            <p className="text-xs font-medium text-slate-500">{weekDay}</p>
+            <p className="mt-1 text-2xl font-semibold leading-none text-slate-950">{day}</p>
           </div>
-        </div>
-      )}
-    </>
+
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-base font-semibold text-slate-950">{diary.title || '未命名日记'}</h3>
+            {previewText ? (
+              <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">{previewText}</p>
+            ) : null}
+            <p className="mt-2 text-xs text-slate-400">{diary.district || '地点未知'}</p>
+          </div>
+
+          {previewImageUrl ? (
+            <div className="ml-2 h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-2xl bg-slate-100">
+              <img src={getImageUrl(previewImageUrl, 'thumb')} alt={diary.title || '日记缩略图'} className="h-full w-full object-cover" />
+            </div>
+          ) : null}
+
+          <div className="sr-only">
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpenChat(diary);
+              }}
+            >
+              查看原始对话
+            </button>
+          </div>
+        </article>
+      </div>
+    </BaseSwipeable>
   );
 };
 

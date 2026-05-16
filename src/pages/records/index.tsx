@@ -1,9 +1,7 @@
-import { useNavigate } from 'react-router-dom';
 import { UtensilsCrossed, BookOpen, Clock, CheckSquare } from 'lucide-react';
+import RecordCard from './components/RecordCard';
 
 const RecordsPage = () => {
-  const navigate = useNavigate();
-
   const records = [
     {
       id: 'food',
@@ -58,23 +56,9 @@ const RecordsPage = () => {
       <div className="bg-white min-h-[calc(100dvh-140px)] pt-8">
         <div className="mx-auto max-w-2xl px-4 sm:px-6">
           <div className="grid grid-cols-3 gap-4 sm:gap-6">
-            {records.map((record) => {
-              const Icon = record.icon;
-              return (
-                <button
-                  key={record.id}
-                  onClick={() => navigate(record.path)}
-                  className={`flex aspect-square flex-col items-center justify-center gap-3 rounded-lg p-6 transition-all hover:shadow-lg active:scale-95 ${record.color}`}
-                >
-                  <div className={`rounded-full bg-white p-4 shadow-md`}>
-                    <Icon size={32} className={record.iconColor} />
-                  </div>
-                  <span className="text-sm font-medium text-slate-700">
-                    {record.label}
-                  </span>
-                </button>
-              );
-            })}
+            {records.map((record) => (
+              <RecordCard key={record.id} {...record} />
+            ))}
           </div>
         </div>
       </div>

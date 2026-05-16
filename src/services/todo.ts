@@ -6,6 +6,7 @@ export interface Todo {
   description?: string;
   status: 'pending' | 'completed' | 'discarded';
   deadline?: string;
+  group_id?: number;
   completed_at?: string;
   created_at: string;
   updated_at: string;
@@ -15,6 +16,7 @@ export interface TodoCreate {
   title: string;
   description?: string;
   deadline?: string;
+  group_id?: number;
 }
 
 export interface TodoUpdate {
@@ -22,6 +24,7 @@ export interface TodoUpdate {
   description?: string;
   status?: 'pending' | 'completed' | 'discarded';
   deadline?: string;
+  group_id?: number;
 }
 
 export const getTodos = () => {
