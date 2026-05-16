@@ -4,6 +4,8 @@ import { BaseButton, BaseInput } from '../../components/atoms';
 import { getCountdowns, createCountdown, updateCountdown, deleteCountdown, type Countdown } from '../../services/countdown';
 import { Loading } from '../../components/atoms';
 import { getCurrentDiaryDate, formatDateString } from '../../utils/date';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const EMOJI_LIST = ['📅', '⏳', '💍', '🎉', '📌', '🚩', '⏰', '🎯', '🏁', '❤️', '🥂', '🎂', '🕯️', '📷', '🎁'];
 
@@ -128,17 +130,19 @@ const CountdownPage = () => {
     }
   };
 
+  const handleOpenModal = () => {
+    setFormData({ name: '', targetDate: formatDateString(getCurrentDiaryDate()), emoji: '📅' });
+    setShowModal(true);
+  };
+
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingId(null);
-    setFormData({ name: '', targetDate: '', emoji: '📅' });
     setShowEmojiPicker(false);
   };
 
   const sortedCountdowns = [...countdowns].sort((a, b) => {
-    const daysA = calculateDays(a.target_date);
-    const daysB = calculateDays(b.target_date);
-    return daysA - daysB;
+    return new Date(b.target_date).getTime() - new Date(a.target_date).getTime();
   });
 
   if (isLoading) {
@@ -170,7 +174,7 @@ const CountdownPage = () => {
               </p>
             </div>
             <button
-              onClick={() => setShowModal(true)}
+              onClick={handleOpenModal}
               className="rounded-full bg-white/20 p-2 text-white transition hover:bg-white/30"
             >
               <Plus size={24} />
@@ -186,7 +190,7 @@ const CountdownPage = () => {
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-slate-400 mb-4">暂无数据</p>
               <BaseButton
-                onClick={() => setShowModal(true)}
+                onClick={handleOpenModal}
                 className="bg-purple-500 hover:bg-purple-600"
               >
                 添加倒数日
@@ -308,12 +312,13 @@ const CountdownPage = () => {
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   目标日期
                 </label>
-                <BaseInput
-                  type="date"
-                  value={formData.targetDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, targetDate: e.target.value })
+                <DatePicker
+                  selected={formData.targetDate ? new Date(formData.targetDate) : null}
+                  onChange={(date: Date | null) =>
+                    setFormData({ ...formData, targetDate: date ? formatDateString(date) : '' })
                   }
+                  dateFormat="yyyy-MM-dd"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
 

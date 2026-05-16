@@ -7,6 +7,7 @@ import JournalPage from './pages/journal';
 import FoodPage from './pages/food';
 import CountdownPage from './pages/countdown';
 import RecordsPage from './pages/records';
+import TodoPage from './pages/todo';
 import EditorPage from './pages/editor';
 import LoginPage from './pages/auth/login';
 import RegisterPage from './pages/auth/register';
@@ -23,6 +24,7 @@ const App = () => {
   const isJournalPage = location.pathname === '/journal';
   const isRecordsPage = location.pathname === '/records';
   const isCountdownPage = location.pathname === '/countdown';
+  const isTodoPage = location.pathname === '/todo';
 
   return (
     <AuthProvider>
@@ -41,12 +43,12 @@ const App = () => {
               <ProtectedRoute>
                 <div
                   className={
-                    isTodayPage || isJournalPage || isRecordsPage || isCountdownPage
+                    isTodayPage || isJournalPage || isRecordsPage || isCountdownPage || isTodoPage
                       ? ''
                       : 'mx-auto max-w-2xl px-4 pt-6 sm:px-6'
                   }
                   style={
-                    isTodayPage || isJournalPage || isRecordsPage || isCountdownPage
+                    isTodayPage || isJournalPage || isRecordsPage || isCountdownPage || isTodoPage
                       ? undefined
                       : {
                           paddingBottom:
@@ -59,6 +61,7 @@ const App = () => {
                     <Route path="/today" element={<TodayPage />} />
                     <Route path="/records" element={<RecordsPage />} />
                     <Route path="/countdown" element={<CountdownPage />} />
+                    <Route path="/todo" element={<TodoPage />} />
                     <Route path="/food" element={<FoodPage />} />
                     <Route path="/journal" element={<JournalPage />} />
                     <Route path="/editor" element={<EditorPage />} />

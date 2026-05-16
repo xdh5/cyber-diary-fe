@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { UtensilsCrossed, BookOpen, Clock } from 'lucide-react';
+import { UtensilsCrossed, BookOpen, Clock, CheckSquare } from 'lucide-react';
 
 const RecordsPage = () => {
   const navigate = useNavigate();
@@ -28,6 +28,14 @@ const RecordsPage = () => {
       path: '/countdown',
       color: 'bg-gradient-to-br from-purple-100 to-purple-50',
       iconColor: 'text-purple-500',
+    },
+    {
+      id: 'todo',
+      label: '待办',
+      icon: CheckSquare,
+      path: '/todo',
+      color: 'bg-gradient-to-br from-green-100 to-green-50',
+      iconColor: 'text-green-500',
     },
   ];
 
