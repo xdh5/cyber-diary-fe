@@ -12,10 +12,19 @@ import type { LocationStatus } from '../../types/ui';
 
 const reverseGeocode = async (lat: number, lng: number): Promise<string | null> => {
   try {
+    console.log(`[Geolocation] Reverse geocoding: lat=${lat}, lng=${lng}`);
     const response = await axios.get(
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`,
+      {
+        timeout: 8000,
+        headers: {
+          'User-Agent': 'Cyber-Diary/1.0 (https://cyber-diary.com)',
+        },
+      }
     );
     const data = response.data;
+    console.log('[Geolocation] Response:', data);
+    
     const address = data.address || {};
     const country = address.country || '中国';
     const province = address.state || address.region || address.province || address.county || '';
@@ -36,6 +45,7 @@ const reverseGeocode = async (lat: number, lng: number): Promise<string | null> 
     return null;
   }
 };
+
 
 const EditorPage = () => {
   const navigate = useNavigate();
@@ -116,23 +126,28 @@ const EditorPage = () => {
       return;
     }
     if (!navigator.geolocation) {
+      console.warn('[Geolocation] Geolocation API not available');
       setLocationStatus('denied');
-      setDistrict('未知未知');
+      setDistrict('未知位置');
       return;
     }
+    
     setLocationStatus('prompt');
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
+        console.log(`[Geolocation] Got coordinates: lat=${coords.latitude}, lng=${coords.longitude}`);
         const label = await reverseGeocode(coords.latitude, coords.longitude);
-        const finalDistrict = label || '未知未知';
+        const finalDistrict = label || '未知位置';
         setDistrict(finalDistrict);
         setLocationStatus(label ? 'granted' : 'denied');
+        console.log(`[Geolocation] District set to: ${finalDistrict}`);
       },
-      () => {
+      (error) => {
+        console.error('[Geolocation] Error getting position - Code:', error.code, 'Message:', error.message);
         setLocationStatus('denied');
-        setDistrict('未知未知');
+        setDistrict('未知位置');
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   }, [searchParams, district, locationStatus]);
 

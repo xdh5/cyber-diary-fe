@@ -113,19 +113,22 @@ const MapView = () => {
 
   useEffect(() => {
     if (!navigator.geolocation) {
+      console.warn('[Geolocation] Geolocation API not available');
       setPermissionStatus('denied');
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
+        console.log(`[Geolocation] Got coordinates: lat=${coords.latitude}, lng=${coords.longitude}`);
         setCenter([coords.latitude, coords.longitude]);
         setPermissionStatus('granted');
       },
-      () => {
+      (error) => {
+        console.error('[Geolocation] Error getting position - Code:', error.code, 'Message:', error.message);
         setPermissionStatus('denied');
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   }, []);
 

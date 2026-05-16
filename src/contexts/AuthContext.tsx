@@ -26,6 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUser = async () => {
     const hasToken = api.isAuthenticated();
+    console.log('[Auth] Refresh - hasToken:', hasToken);
 
     if (!hasToken) {
       setIsAuthenticated(false);
@@ -35,30 +36,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const userInfo = await api.getCurrentUser();
+      console.log('[Auth] User info retrieved successfully');
       setUser(userInfo);
       setIsAuthenticated(true);
     } catch (error) {
+      console.error('[Auth] Error fetching user info:', error);
       if (error instanceof HttpError && (error.status === 401 || error.status === 403)) {
+        console.log('[Auth] Token invalid or expired, logging out');
         setIsAuthenticated(false);
         setUser(null);
         api.logout();
-        return;
+      } else {
+        // 其他错误时保持认证状态（可能是网络问题）
+        console.log('[Auth] Non-auth error, keeping session');
+        setIsAuthenticated(true);
       }
-
-      setIsAuthenticated(true);
     }
   };
 
   useEffect(() => {
     const initAuth = async () => {
       try {
-        if (api.isAuthenticated()) {
-          await refreshUser();
+        const hasToken = api.isAuthenticated();
+        console.log('[Auth] Init - hasToken:', hasToken);
+        
+        if (hasToken) {
+          try {
+            await refreshUser();
+          } catch (error) {
+            console.error('[Auth] Failed to refresh user on init:', error);
+            // 如果刷新失败，清除令牌让用户重新登录
+            setIsAuthenticated(false);
+            setUser(null);
+            api.logout();
+          }
+        } else {
+          setIsAuthenticated(false);
+          setUser(null);
         }
       } finally {
         setIsLoading(false);
       }
     };
+    
     initAuth();
   }, []);
 

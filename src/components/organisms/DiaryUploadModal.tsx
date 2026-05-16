@@ -155,13 +155,22 @@ const DiaryUploadModal = ({ onClose, onSuccess }: Props) => {
     setPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // 地理位置获取
+  // 地理位置获取 - 使用浏览器 Geolocation API
   const reverseGeocode = async (lat: number, lng: number): Promise<string | null> => {
     try {
+      console.log(`[Geolocation] Reverse geocoding: lat=${lat}, lng=${lng}`);
       const response = await axios.get(
-        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`,
+        {
+          timeout: 8000,
+          headers: {
+            'User-Agent': 'Cyber-Diary/1.0 (https://cyber-diary.com)',
+          },
+        }
       );
       const data = response.data;
+      console.log('[Geolocation] Response:', data);
+      
       const address = data.address || {};
       const country = address.country || '中国';
       const province = address.state || address.region || address.province || address.county || '';
@@ -174,11 +183,11 @@ const DiaryUploadModal = ({ onClose, onSuccess }: Props) => {
         .map((part, index, arr) => (arr.indexOf(part) === index ? part : null))
         .filter(Boolean) as string[];
 
-      if (parts.length > 0) return parts.join('');
-      if (data.display_name) return data.display_name.split(',').slice(0, 3).join(' ').trim();
-      return null;
+      const result = parts.length > 0 ? parts.join('') : data.display_name?.split(',').slice(0, 3).join(' ').trim() || null;
+      console.log('[Geolocation] Result:', result);
+      return result;
     } catch (err) {
-      console.error('Reverse geocode failed:', err);
+      console.error('[Geolocation] Reverse geocode failed:', err);
       return null;
     }
   };
@@ -190,23 +199,28 @@ const DiaryUploadModal = ({ onClose, onSuccess }: Props) => {
       return;
     }
     if (!navigator.geolocation) {
+      console.warn('[Geolocation] Geolocation API not available');
       setLocationStatus('denied');
       setDistrict('未知位置');
       return;
     }
+    
     setLocationStatus('prompt');
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
+        console.log(`[Geolocation] Got coordinates: lat=${coords.latitude}, lng=${coords.longitude}`);
         const label = await reverseGeocode(coords.latitude, coords.longitude);
         const finalDistrict = label || '未知位置';
         setDistrict(finalDistrict);
         setLocationStatus(label ? 'granted' : 'denied');
+        console.log(`[Geolocation] District set to: ${finalDistrict}`);
       },
-      () => {
+      (error) => {
+        console.error('[Geolocation] Error getting position - Code:', error.code, 'Message:', error.message);
         setLocationStatus('denied');
         setDistrict('未知位置');
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   }, [district, locationStatus]);
 
@@ -330,7 +344,7 @@ const DiaryUploadModal = ({ onClose, onSuccess }: Props) => {
             <span className="text-xs">{district || '正在获取位置...'}</span>
           </div>
           <div className="rounded-full bg-slate-100 px-3 py-1.5 text-xs text-slate-500">
-            {locationStatus === 'prompt' && '请求权限'}
+            {locationStatus === 'prompt' && '定位中'}
             {locationStatus === 'granted' && '已定位'}
             {locationStatus === 'denied' && '定位失败'}
             {locationStatus === 'pending' && '等待中'}

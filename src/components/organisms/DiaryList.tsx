@@ -204,7 +204,7 @@ const DiaryList = ({ onYearRangeChange }: DiaryListProps) => {
         <Loading />
       ) : groupedLabels.length === 0 ? (
         <div className="flex w-full flex-col items-center justify-center px-5 py-8">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[linear-gradient(180deg,rgba(91,206,250,0.16),rgba(91,206,250,0.06))] text-[var(--theme-blue)]">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl text-[var(--color-primary)]" style={{ backgroundImage: 'linear-gradient(180deg, rgba(var(--color-primary-rgb), 0.16), rgba(var(--color-primary-rgb), 0.06))' }}>
             <BookOpenText size={28} />
           </div>
 
@@ -220,7 +220,7 @@ const DiaryList = ({ onYearRangeChange }: DiaryListProps) => {
 
             return (
               <section key={groupLabel} className="space-y-2">
-                <div className="-mx-3 border-y border-slate-200 bg-slate-100 px-4 py-2 text-lg font-semibold text-slate-950">
+                <div className="-mx-3 border-y border-slate-200 bg-white px-4 py-2 text-lg font-semibold text-slate-950">
                   {groupLabel}
                 </div>
 
@@ -297,7 +297,7 @@ const DiaryList = ({ onYearRangeChange }: DiaryListProps) => {
               <button
                 type="button"
                 onClick={() => setChatModalOpen(false)}
-                className="rounded-xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"
+                className="rounded-xl bg-slate-100 p-2 text-slate-900 hover:bg-slate-200"
                 aria-label="关闭弹窗"
               >
                 <X size={16} />
@@ -331,7 +331,8 @@ const DiaryList = ({ onYearRangeChange }: DiaryListProps) => {
 
       <button
         onClick={() => setUploadModalOpen(true)}
-        className="fixed bottom-[6.5rem] right-5 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[var(--theme-blue)] text-white shadow-[0_1.125rem_2.5rem_-1.125rem_rgba(91,206,250,0.8)] transition hover:brightness-95"
+        className="fixed bottom-[6.5rem] right-5 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-primary)] text-white transition hover:brightness-95"
+        style={{ boxShadow: '0 1.125rem 2.5rem -1.125rem rgba(var(--color-primary-rgb), 0.8)' }}
         aria-label="新建日记"
       >
         <span className="text-3xl leading-none">+</span>
